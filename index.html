@@ -21,43 +21,71 @@
   })();
   </script>
 
-  <!-- ===== Chromebook / ChromeOS FIX (MERGED) ===== -->
+  <!-- ===== CHROMEBOOK + INVISIBLE LEVEL UI FIX (MERGED) ===== -->
   <script>
   (function () {
     const isChromeOS = /CrOS/i.test(navigator.userAgent);
     if (!isChromeOS) return;
 
-    console.log("ChromeOS detected – fixes enabled");
+    console.log("ChromeOS detected – applying UI fixes");
 
     function applyFixes() {
       const canvas = document.getElementById("GameCanvas");
       const gameDiv = document.getElementById("GameDiv");
       if (!canvas) return;
 
-      /* Keyboard focus */
+      /* =====================================================
+         CRITICAL FIX:
+         Force DPR = 1 to prevent invisible level UI
+         ===================================================== */
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+      canvas.width = w;
+      canvas.height = h;
+
+      canvas.style.position = "absolute";
+      canvas.style.left = "0";
+      canvas.style.top = "0";
+      canvas.style.zIndex = "1";
+
+      /* Keyboard / mouse focus */
       canvas.setAttribute("tabindex", "1");
       canvas.focus({ preventScroll: true });
 
       document.addEventListener("click", () => canvas.focus());
       document.addEventListener("keydown", () => canvas.focus());
 
-      /* Proper canvas scaling */
-      function resize() {
-        const dpr = window.devicePixelRatio || 1;
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-
-        canvas.style.width = w + "px";
-        canvas.style.height = h + "px";
-        canvas.width = Math.floor(w * dpr);
-        canvas.height = Math.floor(h * dpr);
+      /* Disable ChromeOS gestures */
+      if (gameDiv) {
+        gameDiv.style.touchAction = "none";
+        gameDiv.addEventListener("contextmenu", e => e.preventDefault());
       }
 
-      window.addEventListener("resize", resize);
-      window.addEventListener("orientationchange", resize);
-      resize();
+      /* =====================================================
+         FORCE COCOS UI REFRESH (fixes invisible level buttons)
+         ===================================================== */
+      function refreshCocosUI() {
+        if (window.cc && cc.view) {
+          cc.view.enableAutoFullScreen(false);
+          cc.view.resizeWithBrowserSize(true);
+          cc.view.setDesignResolutionSize(
+            window.innerWidth,
+            window.innerHeight,
+            cc.ResolutionPolicy.SHOW_ALL
+          );
+          cc.view._resizeEvent();
+        }
+      }
 
-      /* Unlock audio (ChromeOS autoplay policy) */
+      /* Run multiple times to catch late UI creation */
+      setTimeout(refreshCocosUI, 500);
+      setTimeout(refreshCocosUI, 1000);
+      setTimeout(refreshCocosUI, 2000);
+
+      /* Audio unlock (ChromeOS policy) */
       function unlockAudio() {
         const AC = window.AudioContext || window.webkitAudioContext;
         if (!AC) return;
@@ -69,17 +97,22 @@
       document.addEventListener("touchstart", unlockAudio, { once: true });
       document.addEventListener("keydown", unlockAudio, { once: true });
 
-      /* Disable right-click & gestures */
-      if (gameDiv) {
-        gameDiv.addEventListener("contextmenu", e => e.preventDefault());
-        gameDiv.style.touchAction = "none";
-      }
+      /* Keep canvas synced on resize */
+      window.addEventListener("resize", () => {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+        canvas.width = w;
+        canvas.height = h;
+        refreshCocosUI();
+      });
     }
 
     window.addEventListener("load", applyFixes);
   })();
   </script>
-  <!-- ===== END Chromebook FIX ===== -->
+  <!-- ===== END CHROMEBOOK FIX ===== -->
 
   <meta name="viewport"
     content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -99,15 +132,6 @@
   <meta name="x5-page-mode" content="app">
 
   <link rel="stylesheet" type="text/css" href="style.f76d1.css" />
-
-  <!-- Google scripts untouched -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FNC28KV0ZR"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-FNC28KV0ZR');
-  </script>
 
 </head>
 
